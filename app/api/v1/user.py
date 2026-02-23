@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from jose import JWTError, ExpiredSignatureError
 
 from schemas.user import UserCreate, LoginData, UserResponse
 from schemas.token import TokenResponse, RefreshTokenRequest
@@ -92,7 +93,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Неверный логин или пароль'
         )
-        
+    
     tokens = await jwt_service.create_token_pair(result.id)
     return tokens
 
@@ -126,6 +127,11 @@ async def logout(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Ошибка выхода'
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
         )
 
 
@@ -165,6 +171,11 @@ async def refresh(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Токен недействителен'
         )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
+        )
         
     
 @router.get(
@@ -197,4 +208,9 @@ async def profile(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
         )

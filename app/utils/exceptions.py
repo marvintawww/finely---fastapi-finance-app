@@ -65,3 +65,7 @@ class NotFoundError(Exception):
 class TypeMatchError(Exception):
     """Не найдено"""
     pass
+
+class TokenSignatureError(Exception):
+    """Ошибка подписи токена"""
+    pass

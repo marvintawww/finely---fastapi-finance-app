@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from jose import ExpiredSignatureError, JWTError
 
 from dependencies.category import get_category_service
 from dependencies.auth import get_current_user
@@ -50,6 +51,11 @@ async def create_new_category(
             status_code=status.HTTP_409_CONFLICT,
             detail='Такая категория уже существует'
         )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
+        )
         
 
 @router.delete(
@@ -83,6 +89,11 @@ async def delete_category(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Ошибка при удалении категории'
         )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
+        )
    
 
 @router.get(
@@ -112,15 +123,20 @@ async def all_categories(
     Returns:
         list: Список категорий
     """
-    
-    categories = await category_service.get_categories(
-        user_id=user_id,
-        skip=skip,
-        limit=limit,
-        search=search,
-        category_type=category_type
-    )
-    return categories
+    try:    
+        categories = await category_service.get_categories(
+            user_id=user_id,
+            skip=skip,
+            limit=limit,
+            search=search,
+            category_type=category_type
+        )
+        return categories
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
+        )
 
 
 @router.get(
@@ -159,6 +175,11 @@ async def get_one_category(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Категория не найдена'
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
         )
         
         
@@ -200,4 +221,9 @@ async def category_name_edit(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Категория не найдена'
+        )
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Подпись истекла'
         )

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — Finely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #7cff67;
+      --pink: #f0a3cc;
+      --yellow: #ffbb29;
+      --bg: #080808;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --text: #f0f0f0;
+      --muted: #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+    }
+
+    h1, h2, h3, h4, .logo { font-family: 'Syne', sans-serif; }
+
+    /* Canvas aurora background */
+    #aurora-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* Noise overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* Auth Card */
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(124,255,103,0.08), transparent 70%);
+      pointer-events: none;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--green), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-active {
+      background: rgba(124,255,103,0.1);
+      color: var(--green);
+    }
+
+    /* Forms */
+    .form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form.hidden {
+      display: none;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #aaa;
+      letter-spacing: 0.02em;
+    }
+
+    .form-group input {
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(124,255,103,0.1);
+    }
+
+    .form-group input::placeholder {
+      color: #333;
+    }
+
+    /* Buttons */
+    .btn {
+      position: relative;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #8fff7a;
+      box-shadow: 0 0 30px rgba(124,255,103,0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-loading .btn-text {
+      visibility: hidden;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Back link */
+    .back-link {
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .back-link a {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link a:hover {
+      color: var(--green);
+    }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      font-size: 0.85rem;
+      padding: 14px 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      animation: toastIn 0.3s ease;
+      border: 1px solid;
+    }
+
+    .toast.success {
+      background: rgba(124,255,103,0.1);
+      border-color: rgba(124,255,103,0.25);
+      color: var(--green);
+    }
+
+    .toast.error {
+      background: rgba(240,163,204,0.1);
+      border-color: rgba(240,163,204,0.25);
+      color: var(--pink);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="aurora-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="content">
+    <div class="auth-card">
+      <div class="logo">Finely</div>
+
+      <div class="tabs">
+        <button type="button" id="tab-login" class="tab tab-active">Вход</button>
+        <button type="button" id="tab-register" class="tab">Регистрация</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="form-login" class="form">
+        <div class="form-group">
+          <label for="login-username">Логин</label>
+          <input type="text" id="login-username" name="login" required placeholder="Введите логин">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Пароль</label>
+          <input type="password" id="login-password" name="password" required placeholder="Введите пароль">
+        </div>
+        <button type="submit" id="btn-login" class="btn">
+          <span class="btn-text">Войти</span>
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" class="form hidden">
+        <div class="form-group">
+          <label for="reg-username">Логин</label>
+          <input type="text" id="reg-username" name="login" required minlength="5" maxlength="30" placeholder="От 5 до 30 символов">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Пароль</label>
+          <input type="password" id="reg-password" name="password" required placeholder="Минимум 6 символов">
+        </div>
+        <button type="submit" id="btn-register" class="btn">
+          <span class="btn-text">Зарегистрироваться</span>
+        </button>
+      </form>
+
+      <div class="back-link">
+        <a href="home.html">← На главную</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Aurora canvas animation (скопировано из home.html)
+    const canvas = document.getElementById('aurora-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+    const blobs = [];
+
+    const colors = [
+      { r: 124, g: 255, b: 103 },  // green
+      { r: 240, g: 163, b: 204 },  // pink
+      { r: 255, g: 187, b: 41  },  // yellow
+      { r: 124, g: 255, b: 103 },  // green again for balance
+    ];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function initBlobs() {
+      blobs.length = 0;
+      for (let i = 0; i < 4; i++) {
+        const c = colors[i];
+        blobs.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          r: 300 + Math.random() * 200,
+          color: c,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.003 + Math.random() * 0.004,
+        });
+      }
+    }
+
+    function drawAurora() {
+      ctx.clearRect(0, 0, W, H);
+
+      blobs.forEach(b => {
+        b.phase += b.speed;
+        b.x += b.vx + Math.sin(b.phase) * 0.5;
+        b.y += b.vy + Math.cos(b.phase * 0.7) * 0.3;
+
+        if (b.x < -b.r) b.x = W + b.r;
+        if (b.x > W + b.r) b.x = -b.r;
+        if (b.y < -b.r) b.y = H + b.r;
+        if (b.y > H + b.r) b.y = -b.r;
+
+        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        grad.addColorStop(0, `rgba(${b.color.r},${b.color.g},${b.color.b},0.18)`);
+        grad.addColorStop(0.5, `rgba(${b.color.r},${b.color.g},${b.color.b},0.06)`);
+        grad.addColorStop(1, `rgba(${b.color.r},${b.color.g},${b.color.b},0)`);
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+
+      requestAnimationFrame(drawAurora);
+    }
+
+    resize();
+    initBlobs();
+    drawAurora();
+    window.addEventListener('resize', resize);
+
+    // API и логика аутентификации
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    function toast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function setLoading(btn, loading) {
+      if (loading) {
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+      } else {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    }
+
+    // Tab switching
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const formLogin = document.getElementById('form-login');
+    const formRegister = document.getElementById('form-register');
+
+    tabLogin.onclick = () => {
+      tabLogin.classList.add('tab-active');
+      tabRegister.classList.remove('tab-active');
+      formLogin.classList.remove('hidden');
+      formRegister.classList.add('hidden');
+    };
+
+    tabRegister.onclick = () => {
+      tabRegister.classList.add('tab-active');
+      tabLogin.classList.remove('tab-active');
+      formRegister.classList.remove('hidden');
+      formLogin.classList.add('hidden');
+    };
+
+    // Login
+    document.getElementById('form-login').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      setLoading(btn, true);
+
+      const login = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const r = await fetch(API_BASE + '/api/v1/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password }),
+        });
+
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok) {
+          toast(data.detail || 'Ошибка входа', 'error');
+          setLoading(btn, false);
+          return;
+        }
+
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        toast('Вход выполнен');
+        location.href = 'dashboard.html';
+      } catch (err) {
+        toast('Ошибка сети', 'error');
+        setLoading(btn, false);
+      }
+    };
+
+    // Register
+    document.getElementById('form-register').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btn-register');
+      setLoading(btn, true);
+
+      const login = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (password.length < 6) {
+        toast('Пароль должен быть не менее 6 символов', 'error');
+        setLoading(btn, false);
+        return;
+      }
+
+      try {
+        const r = await fetch(API_BASE + '/api/v1/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password }),
+        });
+
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok) {
+          toast(data.detail || 'Ошибка регистрации', 'error');
+          setLoading(btn, false);
+          return;
+        }
+
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        toast('Регистрация успешна');
+        location.href = 'dashboard.html';
+      } catch (err) {
+        toast('Ошибка сети', 'error');
+        setLoading(btn, false);
+      }
+    };
+
+    // Если уже есть токен — редирект на дашборд
+    if (localStorage.getItem('access_token')) {
+      location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>

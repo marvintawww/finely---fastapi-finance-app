@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Категории — Finely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #7cff67;
+      --pink: #f0a3cc;
+      --yellow: #ffbb29;
+      --bg: #080808;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --text: #f0f0f0;
+      --muted: #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, .logo { font-family: 'Syne', sans-serif; }
+
+    /* Canvas aurora background */
+    #aurora-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.2;
+    }
+
+    /* Noise overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.8);
+      backdrop-filter: blur(20px);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--green), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+
+    .nav-link {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: 9px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .nav-link.active { color: var(--green); background: rgba(124,255,103,0.07); }
+
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+
+    .nav-user {
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 8px;
+    }
+
+    .btn-logout {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 7px 12px;
+      border-radius: 8px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .btn-logout:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    /* MAIN */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+
+    .page-header {
+      margin-bottom: 28px;
+    }
+
+    .page-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .page-sub { font-size: 0.875rem; color: var(--muted); }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .filters {
+        flex-direction: row;
+      }
+    }
+
+    .search-input {
+      flex: 1;
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(124,255,103,0.1);
+    }
+
+    .search-input::placeholder {
+      color: #333;
+    }
+
+    /* Custom Dropdown - без скроллбара */
+    .custom-dropdown {
+      position: relative;
+      width: 100%;
+    }
+
+    @media (min-width: 640px) {
+      .custom-dropdown {
+        width: auto;
+        min-width: 140px;
+      }
+    }
+
+    .custom-dropdown-trigger {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 14px 16px;
+      padding-right: 40px;
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .custom-dropdown-trigger:hover {
+      border-color: #333;
+    }
+
+    .custom-dropdown-trigger:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(124,255,103,0.1);
+    }
+
+    .custom-dropdown-trigger svg {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--muted);
+    }
+
+    .custom-dropdown-panel {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      z-index: 50;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      overflow: hidden;
+      max-height: 240px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .custom-dropdown-panel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .custom-dropdown-panel[hidden] {
+      display: none;
+    }
+
+    .custom-dropdown-option {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .custom-dropdown-option:hover {
+      background: #1a1a1a;
+    }
+
+    .custom-dropdown-option.selected {
+      background: rgba(124,255,103,0.1);
+      color: var(--green);
+    }
+
+    /* Action button */
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 24px;
+    }
+
+    .btn-primary {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      border: none;
+      border-radius: 12px;
+      padding: 14px 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: #8fff7a;
+      box-shadow: 0 0 30px rgba(124,255,103,0.4);
+      transform: translateY(-2px);
+    }
+
+    /* Categories Grid */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 640px) {
+      .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .categories-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .category-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .category-card:hover {
+      border-color: #333;
+      transform: translateY(-2px);
+    }
+
+    .category-card.income::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(124,255,103,0.08), transparent 70%);
+      pointer-events: none;
+    }
+
+    .category-card.expense::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(240,163,204,0.08), transparent 70%);
+      pointer-events: none;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .category-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .category-type {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .category-type.income {
+      background: rgba(124,255,103,0.1);
+      border: 1px solid rgba(124,255,103,0.2);
+      color: var(--green);
+    }
+
+    .category-type.expense {
+      background: rgba(240,163,204,0.1);
+      border: 1px solid rgba(240,163,204,0.2);
+      color: var(--pink);
+    }
+
+    .category-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: flex-end;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-icon {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .btn-icon.edit {
+      color: var(--green);
+    }
+
+    .btn-icon.edit:hover {
+      color: #8fff7a;
+    }
+
+    .btn-icon.delete {
+      color: var(--pink);
+    }
+
+    .btn-icon.delete:hover {
+      color: #ff99cc;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      animation: modalIn 0.2s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #aaa;
+    }
+
+    .form-group input {
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .btn-secondary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: #333;
+    }
+
+    .btn-submit {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .btn-submit:hover {
+      background: #8fff7a;
+      box-shadow: 0 0 30px rgba(124,255,103,0.3);
+    }
+
+    .btn-delete {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--pink);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .btn-delete:hover {
+      background: #ff99cc;
+      box-shadow: 0 0 30px rgba(240,163,204,0.3);
+    }
+
+    .btn-loading {
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .btn-loading .btn-text {
+      visibility: hidden;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* Toast */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      font-size: 0.85rem;
+      padding: 14px 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      animation: toastIn 0.3s ease;
+      border: 1px solid;
+    }
+
+    .toast.success {
+      background: rgba(124,255,103,0.1);
+      border-color: rgba(124,255,103,0.25);
+      color: var(--green);
+    }
+
+    .toast.error {
+      background: rgba(240,163,204,0.1);
+      border-color: rgba(240,163,204,0.25);
+      color: var(--pink);
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="aurora-canvas"></canvas>
+  <div id="toast-container"></div>
+
+  <div class="content">
+    <!-- NAV -->
+    <nav>
+      <div class="nav-inner">
+        <a href="home.html" class="logo">Finely</a>
+        <div class="nav-links">
+          <a href="dashboard.html" class="nav-link">Dashboard</a>
+          <a href="transactions.html" class="nav-link">Transactions</a>
+          <a href="categories.html" class="nav-link active">Categories</a>
+        </div>
+        <div class="nav-right">
+          <span id="user-login" class="nav-user"></span>
+          <button id="btn-logout" class="btn-logout">Выход</button>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <div class="page-header">
+        <h1 class="page-title">Категории</h1>
+        <p class="page-sub">Управление категориями доходов и расходов</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <input type="search" id="search" placeholder="Поиск по названию..." class="search-input">
+
+        <div class="custom-dropdown" data-dropdown>
+          <input type="hidden" id="filter-type" value="">
+          <button type="button" class="custom-dropdown-trigger" aria-expanded="false">
+            <span class="custom-dropdown-value">Все типы</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="custom-dropdown-panel" hidden>
+            <button type="button" class="custom-dropdown-option selected" data-value="">Все типы</button>
+            <button type="button" class="custom-dropdown-option" data-value="income">Доход</button>
+            <button type="button" class="custom-dropdown-option" data-value="expense">Расход</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="action-bar">
+        <button type="button" id="btn-create" class="btn-primary">+ Новая категория</button>
+      </div>
+
+      <!-- Categories Grid -->
+      <div id="categories-grid" class="categories-grid">
+        <div class="empty-state">Загрузка…</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Modal -->
+  <div id="modal-create" class="modal-backdrop">
+    <div class="modal">
+      <h3>Новая категория</h3>
+      <form id="form-create" class="modal-form">
+        <div class="form-group">
+          <label for="create-name">Название</label>
+          <input type="text" id="create-name" required minlength="5" maxlength="30">
+        </div>
+        <div class="form-group">
+          <label>Тип</label>
+          <div class="custom-dropdown" data-dropdown>
+            <input type="hidden" id="create-type" value="income">
+            <button type="button" class="custom-dropdown-trigger" aria-expanded="false">
+              <span class="custom-dropdown-value">Доход</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="custom-dropdown-panel" hidden>
+              <button type="button" class="custom-dropdown-option selected" data-value="income">Доход</button>
+              <button type="button" class="custom-dropdown-option" data-value="expense">Расход</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="create-cancel" class="btn-secondary">Отмена</button>
+          <button type="submit" id="create-submit" class="btn-submit">
+            <span class="btn-text">Создать</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="modal-edit" class="modal-backdrop">
+    <div class="modal">
+      <h3>Редактировать категорию</h3>
+      <form id="form-edit" class="modal-form">
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label for="edit-name">Название</label>
+          <input type="text" id="edit-name" required minlength="5" maxlength="30">
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="edit-cancel" class="btn-secondary">Отмена</button>
+          <button type="submit" id="edit-submit" class="btn-submit">
+            <span class="btn-text">Сохранить</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="modal-delete" class="modal-backdrop">
+    <div class="modal">
+      <h3>Удалить категорию?</h3>
+      <p id="delete-name" class="text-gray-400 mb-4"></p>
+      <div class="modal-actions">
+        <button type="button" id="delete-cancel" class="btn-secondary">Отмена</button>
+        <button type="button" id="delete-confirm" class="btn-delete">
+          <span class="btn-text">Удалить</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Aurora canvas animation
+    const canvas = document.getElementById('aurora-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+    const blobs = [];
+
+    const colors = [
+      { r: 124, g: 255, b: 103 },
+      { r: 240, g: 163, b: 204 },
+      { r: 255, g: 187, b: 41 },
+      { r: 124, g: 255, b: 103 },
+    ];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function initBlobs() {
+      blobs.length = 0;
+      for (let i = 0; i < 4; i++) {
+        const c = colors[i];
+        blobs.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          r: 280 + Math.random() * 180,
+          color: c,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.003 + Math.random() * 0.004,
+        });
+      }
+    }
+
+    function drawAurora() {
+      ctx.clearRect(0, 0, W, H);
+      blobs.forEach(b => {
+        b.phase += b.speed;
+        b.x += b.vx + Math.sin(b.phase) * 0.4;
+        b.y += b.vy + Math.cos(b.phase * 0.7) * 0.3;
+        if (b.x < -b.r) b.x = W + b.r;
+        if (b.x > W + b.r) b.x = -b.r;
+        if (b.y < -b.r) b.y = H + b.r;
+        if (b.y > H + b.r) b.y = -b.r;
+        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        grad.addColorStop(0, `rgba(${b.color.r},${b.color.g},${b.color.b},0.15)`);
+        grad.addColorStop(0.5, `rgba(${b.color.r},${b.color.g},${b.color.b},0.05)`);
+        grad.addColorStop(1, `rgba(${b.color.r},${b.color.g},${b.color.b},0)`);
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+      requestAnimationFrame(drawAurora);
+    }
+
+    resize();
+    initBlobs();
+    drawAurora();
+    window.addEventListener('resize', resize);
+
+    // API и логика
+    const API_BASE = 'http://127.0.0.1:8000';
+
+    function getTokens() {
+      return { access: localStorage.getItem('access_token'), refresh: localStorage.getItem('refresh_token') };
+    }
+    function redirectAuth() { location.replace('auth.html'); }
+
+    async function refreshTokens() {
+      const { refresh } = getTokens();
+      if (!refresh) return null;
+      const r = await fetch(API_BASE + '/api/v1/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh }),
+      });
+      if (!r.ok) return null;
+      const data = await r.json();
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      return data.access_token;
+    }
+
+    async function fetchWithAuth(url, options = {}) {
+      let token = getTokens().access;
+      if (!token) { redirectAuth(); return; }
+      options.headers = { ...options.headers, Authorization: `Bearer ${token}` };
+      let r = await fetch(API_BASE + url, options);
+      if (r.status === 401) {
+        token = await refreshTokens();
+        if (!token) { redirectAuth(); return; }
+        options.headers.Authorization = `Bearer ${token}`;
+        r = await fetch(API_BASE + url, options);
+      }
+      if (r.status === 401) { redirectAuth(); return; }
+      return r;
+    }
+
+    function toast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function setLoading(btn, loading) {
+      if (loading) {
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+      } else {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    if (!getTokens().access) redirectAuth();
+
+    let categories = [];
+    let deleteTargetId = null;
+
+    function buildQuery() {
+      const search = document.getElementById('search').value.trim();
+      const type = document.getElementById('filter-type').value;
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (type) params.set('category_type', type);
+      params.set('limit', '100');
+      return '?' + params.toString();
+    }
+
+    async function loadCategories() {
+      const r = await fetchWithAuth('/api/v1/category/' + buildQuery());
+      if (!r) return;
+      categories = r.ok ? await r.json() : [];
+      render();
+    }
+
+    function render() {
+      const grid = document.getElementById('categories-grid');
+      if (categories.length === 0) {
+        grid.innerHTML = '<div class="empty-state">Нет категорий</div>';
+        return;
+      }
+      
+      grid.innerHTML = categories.map(c => `
+        <div class="category-card ${c.category_type}">
+          <div class="category-header">
+            <h3 class="category-name">${escapeHtml(c.name)}</h3>
+          </div>
+          <div>
+            <span class="category-type ${c.category_type}">
+              ${c.category_type === 'income' ? 'Доход' : 'Расход'}
+            </span>
+          </div>
+          <div class="category-actions">
+            <button type="button" data-edit-id="${c.id}" class="btn-icon edit">Изменить</button>
+            <button type="button" data-delete-id="${c.id}" class="btn-icon delete">Удалить</button>
+          </div>
+        </div>
+      `).join('');
+      
+      grid.querySelectorAll('[data-edit-id]').forEach(btn => {
+        const c = categories.find(x => x.id === parseInt(btn.dataset.editId, 10));
+        if (c) btn.onclick = () => openEdit(c.id, c.name);
+      });
+      
+      grid.querySelectorAll('[data-delete-id]').forEach(btn => {
+        const c = categories.find(x => x.id === parseInt(btn.dataset.deleteId, 10));
+        if (c) btn.onclick = () => openDelete(c.id, c.name);
+      });
+    }
+
+    function openCreate() {
+      document.getElementById('create-name').value = '';
+      document.getElementById('modal-create').classList.add('show');
+    }
+    function closeCreate() {
+      document.getElementById('modal-create').classList.remove('show');
+    }
+
+    function openEdit(id, name) {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('edit-name').value = name;
+      document.getElementById('modal-edit').classList.add('show');
+    }
+    function closeEdit() {
+      document.getElementById('modal-edit').classList.remove('show');
+    }
+
+    function openDelete(id, name) {
+      deleteTargetId = id;
+      document.getElementById('delete-name').textContent = `Категория «${name}» будет удалена.`;
+      document.getElementById('modal-delete').classList.add('show');
+    }
+    function closeDelete() {
+      deleteTargetId = null;
+      document.getElementById('modal-delete').classList.remove('show');
+    }
+
+    function initDropdowns() {
+      document.querySelectorAll('.custom-dropdown').forEach(wrap => {
+        const input = wrap.querySelector('input[type="hidden"]');
+        const trigger = wrap.querySelector('.custom-dropdown-trigger');
+        const panel = wrap.querySelector('.custom-dropdown-panel');
+        const valueEl = wrap.querySelector('.custom-dropdown-value');
+        if (!trigger || !panel || !input) return;
+        
+        trigger.onclick = (e) => {
+          e.stopPropagation();
+          const isOpen = !panel.hidden;
+          document.querySelectorAll('.custom-dropdown-panel').forEach(p => { p.hidden = true; });
+          document.querySelectorAll('.custom-dropdown-trigger').forEach(t => { t.setAttribute('aria-expanded', 'false'); });
+          if (!isOpen) {
+            panel.hidden = false;
+            trigger.setAttribute('aria-expanded', 'true');
+          }
+        };
+        
+        wrap.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+          opt.onclick = (e) => {
+            e.stopPropagation();
+            const val = opt.dataset.value;
+            input.value = val;
+            valueEl.textContent = opt.textContent.trim();
+            panel.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+            wrap.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            if (input.id === 'filter-type') loadCategories();
+          };
+        });
+      });
+      
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-dropdown-panel').forEach(p => { p.hidden = true; });
+        document.querySelectorAll('.custom-dropdown-trigger').forEach(t => { t.setAttribute('aria-expanded', 'false'); });
+      });
+    }
+
+    // Инициализация
+    initDropdowns();
+
+    document.getElementById('search').oninput = loadCategories;
+    document.getElementById('btn-create').onclick = openCreate;
+    document.getElementById('create-cancel').onclick = closeCreate;
+    document.getElementById('edit-cancel').onclick = closeEdit;
+    document.getElementById('delete-cancel').onclick = closeDelete;
+
+    document.getElementById('form-create').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('create-submit');
+      setLoading(btn, true);
+      
+      const name = document.getElementById('create-name').value.trim();
+      const category_type = document.getElementById('create-type').value;
+      
+      const r = await fetchWithAuth('/api/v1/category/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category_type }),
+      });
+      
+      setLoading(btn, false);
+      if (!r) return;
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d.detail || 'Ошибка', 'error');
+        return;
+      }
+      
+      toast('Категория создана');
+      closeCreate();
+      loadCategories();
+    };
+
+    document.getElementById('form-edit').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('edit-submit');
+      setLoading(btn, true);
+      
+      const id = document.getElementById('edit-id').value;
+      const name = document.getElementById('edit-name').value.trim();
+      
+      const r = await fetchWithAuth('/api/v1/category/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      
+      setLoading(btn, false);
+      if (!r) return;
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d.detail || 'Ошибка', 'error');
+        return;
+      }
+      
+      toast('Категория обновлена');
+      closeEdit();
+      loadCategories();
+    };
+
+    document.getElementById('delete-confirm').onclick = async () => {
+      if (!deleteTargetId) return;
+      
+      const btn = document.getElementById('delete-confirm');
+      setLoading(btn, true);
+      
+      const r = await fetchWithAuth('/api/v1/category/' + deleteTargetId, { method: 'DELETE' });
+      
+      setLoading(btn, false);
+      closeDelete();
+      
+      if (!r) return;
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        toast(d.detail || 'Ошибка удаления', 'error');
+        return;
+      }
+      
+      toast('Категория удалена');
+      loadCategories();
+    };
+
+    document.getElementById('btn-logout').onclick = () => {
+      const refresh = getTokens().refresh;
+      if (refresh) {
+        fetch(API_BASE + '/api/v1/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refresh })
+        }).catch(() => {});
+      }
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      location.href = 'auth.html';
+    };
+
+    // Загрузка профиля и категорий
+    (async () => {
+      const profileRes = await fetchWithAuth('/api/v1/profile');
+      if (profileRes?.ok) {
+        const user = await profileRes.json();
+        document.getElementById('user-login').textContent = user.login;
+      }
+      
+      await loadCategories();
+    })();
+  </script>
+</body>
+</html>

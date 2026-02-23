@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finely — Управление финансами</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #7cff67;
+      --pink: #f0a3cc;
+      --yellow: #ffbb29;
+      --bg: #080808;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --text: #f0f0f0;
+      --muted: #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, .logo { font-family: 'Syne', sans-serif; }
+
+    /* Canvas aurora background */
+    #aurora-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    /* Noise overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .content { position: relative; z-index: 2; }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,8,8,0.7);
+      backdrop-filter: blur(20px);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--green), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 12px; }
+
+    .btn-ghost {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 10px;
+      transition: color 0.2s;
+    }
+    .btn-ghost:hover { color: var(--text); }
+
+    .btn-primary {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      text-decoration: none;
+      padding: 9px 20px;
+      border-radius: 10px;
+      transition: all 0.2s;
+      box-shadow: 0 0 0 0 rgba(124,255,103,0);
+    }
+    .btn-primary:hover {
+      background: #8fff7a;
+      box-shadow: 0 0 24px rgba(124,255,103,0.4);
+      transform: translateY(-1px);
+    }
+
+    /* HERO */
+    .hero {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 100px 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; padding: 60px 24px; }
+      .hero-visual { display: none; }
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--green);
+      border: 1px solid rgba(124,255,103,0.2);
+      background: rgba(124,255,103,0.05);
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--pink), var(--yellow));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: #888;
+      margin-bottom: 36px;
+      max-width: 440px;
+    }
+
+    .hero-cta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+    .btn-large {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #000;
+      background: var(--green);
+      text-decoration: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    .btn-large:hover {
+      background: #8fff7a;
+      box-shadow: 0 0 40px rgba(124,255,103,0.5);
+      transform: translateY(-2px);
+    }
+
+    .hero-note {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* HERO VISUAL — fake dashboard card */
+    .hero-visual {
+      position: relative;
+    }
+
+    .mock-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mock-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(124,255,103,0.15), transparent 70%);
+      pointer-events: none;
+    }
+
+    .mock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .mock-label { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+    .mock-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--green);
+      background: rgba(124,255,103,0.1);
+      border: 1px solid rgba(124,255,103,0.2);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .mock-balance {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--green);
+      margin-bottom: 4px;
+      text-shadow: 0 0 30px rgba(124,255,103,0.3);
+    }
+
+    .mock-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 24px; }
+
+    .mock-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .mock-stat {
+      background: #161616;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .mock-stat-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 6px; }
+    .mock-stat-value { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; }
+    .mock-stat-value.income { color: var(--green); }
+    .mock-stat-value.expense { color: var(--pink); }
+
+    .mock-transactions { display: flex; flex-direction: column; gap: 8px; }
+
+    .mock-tx {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #0d0d0d;
+      border-radius: 10px;
+      border: 1px solid #1a1a1a;
+      animation: slideIn 0.5s ease both;
+    }
+
+    .mock-tx:nth-child(1) { animation-delay: 0.1s; }
+    .mock-tx:nth-child(2) { animation-delay: 0.2s; }
+    .mock-tx:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .mock-tx-name { font-size: 0.8rem; color: #ccc; }
+    .mock-tx-cat { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .mock-tx-amount { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; }
+    .mock-tx-amount.pos { color: var(--green); }
+    .mock-tx-amount.neg { color: var(--pink); }
+
+    /* DIVIDER */
+    .section-divider {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* FEATURES */
+    .features {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .section-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--pink);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .section-desc { font-size: 1rem; color: #777; max-width: 480px; line-height: 1.7; margin-bottom: 48px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) { .features-grid { grid-template-columns: 1fr; } }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      border-color: #333;
+      transform: translateY(-3px);
+    }
+
+    .feature-card:nth-child(1):hover::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 20%, rgba(124,255,103,0.05), transparent 60%); pointer-events: none; }
+    .feature-card:nth-child(2):hover::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 20%, rgba(240,163,204,0.05), transparent 60%); pointer-events: none; }
+    .feature-card:nth-child(3):hover::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 20%, rgba(255,187,41,0.05), transparent 60%); pointer-events: none; }
+
+    .feature-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+    }
+
+    .icon-green { background: rgba(124,255,103,0.1); border: 1px solid rgba(124,255,103,0.2); }
+    .icon-pink { background: rgba(240,163,204,0.1); border: 1px solid rgba(240,163,204,0.2); }
+    .icon-yellow { background: rgba(255,187,41,0.1); border: 1px solid rgba(255,187,41,0.2); }
+
+    .feature-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p { font-size: 0.875rem; color: #777; line-height: 1.65; }
+
+    /* STEPS */
+    .steps {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 80px 24px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+    }
+
+    @media (max-width: 768px) { .steps-grid { grid-template-columns: 1fr; } }
+
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: calc(16.6% + 12px);
+      right: calc(16.6% + 12px);
+      height: 1px;
+      background: linear-gradient(90deg, var(--green), var(--pink), var(--yellow));
+      opacity: 0.3;
+    }
+
+    @media (max-width: 768px) { .steps-grid::before { display: none; } }
+
+    .step {
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .step-number {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin: 0 auto 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step:nth-child(1) .step-number { color: var(--green); background: rgba(124,255,103,0.1); border: 1px solid rgba(124,255,103,0.3); }
+    .step:nth-child(2) .step-number { color: var(--pink); background: rgba(240,163,204,0.1); border: 1px solid rgba(240,163,204,0.3); }
+    .step:nth-child(3) .step-number { color: var(--yellow); background: rgba(255,187,41,0.1); border: 1px solid rgba(255,187,41,0.3); }
+
+    .step h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step p { font-size: 0.85rem; color: #666; line-height: 1.6; }
+
+    /* STATS */
+    .stats {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      background: var(--surface);
+    }
+
+    .stat-card:nth-child(1) { border-color: rgba(124,255,103,0.2); background: rgba(124,255,103,0.03); }
+    .stat-card:nth-child(2) { border-color: rgba(240,163,204,0.2); background: rgba(240,163,204,0.03); }
+    .stat-card:nth-child(3) { border-color: rgba(255,187,41,0.2); background: rgba(255,187,41,0.03); }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-card:nth-child(1) .stat-value { color: var(--green); }
+    .stat-card:nth-child(2) .stat-value { color: var(--pink); }
+    .stat-card:nth-child(3) .stat-value { color: var(--yellow); }
+
+    .stat-label { font-size: 0.85rem; color: var(--muted); }
+
+    /* CTA */
+    .cta-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 100px;
+    }
+
+    .cta-box {
+      border-radius: 24px;
+      padding: 64px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      background: #0f0f0f;
+      border: 1px solid #222;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 500px; height: 300px;
+      background: radial-gradient(ellipse, rgba(124,255,103,0.08) 0%, rgba(240,163,204,0.05) 40%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-box h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .cta-box p {
+      font-size: 1rem;
+      color: #666;
+      max-width: 480px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+      position: relative;
+    }
+
+    .cta-box .btn-large { position: relative; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--green), var(--pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .footer-copy { font-size: 0.8rem; color: var(--muted); }
+
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 0.8rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <canvas id="aurora-canvas"></canvas>
+
+  <div class="content">
+    <!-- NAV -->
+    <nav>
+      <div class="nav-inner">
+        <span class="logo">Finely</span>
+        <div class="nav-links">
+          <a href="auth.html" class="btn-ghost">Войти</a>
+          <a href="auth.html" class="btn-primary">Начать бесплатно</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-eyebrow">Финансовый трекер нового поколения</div>
+        <h1>Деньги под<br><em>контролем</em></h1>
+        <p>Finely помогает видеть куда уходят деньги, находить скрытые расходы и принимать обоснованные финансовые решения — без лишнего.</p>
+        <div class="hero-cta">
+          <a href="auth.html" class="btn-large">Начать бесплатно →</a>
+          <span class="hero-note">Без кредитной карты</span>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="mock-card">
+          <div class="mock-header">
+            <span class="mock-label">Общий баланс</span>
+            <span class="mock-badge">● Обновлено сейчас</span>
+          </div>
+          <div class="mock-balance">₽ 84 320</div>
+          <div class="mock-sub">+12.4% по сравнению с прошлым месяцем</div>
+          <div class="mock-stats">
+            <div class="mock-stat">
+              <div class="mock-stat-label">Доходы</div>
+              <div class="mock-stat-value income">₽ 120 000</div>
+            </div>
+            <div class="mock-stat">
+              <div class="mock-stat-label">Расходы</div>
+              <div class="mock-stat-value expense">₽ 35 680</div>
+            </div>
+          </div>
+          <div class="mock-transactions">
+            <div class="mock-tx">
+              <div>
+                <div class="mock-tx-name">Зарплата</div>
+                <div class="mock-tx-cat">Доход · Работа</div>
+              </div>
+              <div class="mock-tx-amount pos">+₽ 95 000</div>
+            </div>
+            <div class="mock-tx">
+              <div>
+                <div class="mock-tx-name">Продукты</div>
+                <div class="mock-tx-cat">Расход · Еда</div>
+              </div>
+              <div class="mock-tx-amount neg">−₽ 4 200</div>
+            </div>
+            <div class="mock-tx">
+              <div>
+                <div class="mock-tx-name">Фриланс</div>
+                <div class="mock-tx-cat">Доход · Проекты</div>
+              </div>
+              <div class="mock-tx-amount pos">+₽ 25 000</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- FEATURES -->
+    <section class="features">
+      <div class="section-tag">Возможности</div>
+      <h2 class="section-title">Всё для контроля<br>ваших финансов</h2>
+      <p class="section-desc">Мощные инструменты в простом интерфейсе. Никаких лишних функций — только то, что действительно нужно.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon icon-green">💰</div>
+          <h3>Учёт доходов</h3>
+          <p>Фиксируйте все поступления по категориям. Видите полную картину ваших финансовых источников.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-pink">📊</div>
+          <h3>Контроль расходов</h3>
+          <p>Отслеживайте траты в реальном времени. Находите скрытые расходы и оптимизируйте бюджет.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-yellow">🏷️</div>
+          <h3>Свои категории</h3>
+          <p>Создавайте категории под свой образ жизни. Точная аналитика без компромиссов.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- STEPS -->
+    <section class="steps">
+      <div style="text-align:center; margin-bottom: 56px;">
+        <div class="section-tag" style="display:inline-block;">Как это работает</div>
+        <h2 class="section-title">Три шага к финансовому<br>порядку</h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-number">01</div>
+          <h3>Создайте категории</h3>
+          <p>Настройте категории доходов и расходов под свои нужды</p>
+        </div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <h3>Добавляйте транзакции</h3>
+          <p>Быстро фиксируйте движения денег — это займёт секунды</p>
+        </div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <h3>Анализируйте</h3>
+          <p>Смотрите статистику и принимайте обоснованные решения</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="stats">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Бесплатно навсегда</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Доступность</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">∞</div>
+          <div class="stat-label">Транзакций и категорий</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+      <div class="cta-box">
+        <h2>Готовы взять финансы<br>под контроль?</h2>
+        <p>Регистрация занимает минуту. Начните прямо сейчас — бесплатно и без ограничений.</p>
+        <a href="auth.html" class="btn-large">Начать бесплатно →</a>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-inner">
+        <span class="footer-logo">Finely</span>
+        <div class="footer-links">
+          <a href="home.html">Главная</a>
+          <a href="auth.html">Войти</a>
+          <a href="dashboard.html">Дашборд</a>
+        </div>
+        <span class="footer-copy">© 2026 Finely</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Aurora canvas animation
+    const canvas = document.getElementById('aurora-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+    const blobs = [];
+
+    const colors = [
+      { r: 124, g: 255, b: 103 },  // green
+      { r: 240, g: 163, b: 204 },  // pink
+      { r: 255, g: 187, b: 41  },  // yellow
+      { r: 124, g: 255, b: 103 },  // green again for balance
+    ];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+
+    function initBlobs() {
+      blobs.length = 0;
+      for (let i = 0; i < 4; i++) {
+        const c = colors[i];
+        blobs.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          r: 300 + Math.random() * 200,
+          color: c,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.003 + Math.random() * 0.004,
+        });
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      blobs.forEach(b => {
+        b.phase += b.speed;
+        b.x += b.vx + Math.sin(b.phase) * 0.5;
+        b.y += b.vy + Math.cos(b.phase * 0.7) * 0.3;
+
+        if (b.x < -b.r) b.x = W + b.r;
+        if (b.x > W + b.r) b.x = -b.r;
+        if (b.y < -b.r) b.y = H + b.r;
+        if (b.y > H + b.r) b.y = -b.r;
+
+        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        grad.addColorStop(0, `rgba(${b.color.r},${b.color.g},${b.color.b},0.18)`);
+        grad.addColorStop(0.5, `rgba(${b.color.r},${b.color.g},${b.color.b},0.06)`);
+        grad.addColorStop(1, `rgba(${b.color.r},${b.color.g},${b.color.b},0)`);
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+
+      requestAnimationFrame(draw);
+    }
+
+    resize();
+    initBlobs();
+    draw();
+    window.addEventListener('resize', () => { resize(); });
+  </script>
+</body>
+</html>

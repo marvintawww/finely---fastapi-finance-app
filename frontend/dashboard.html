@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Дашборд — Finely</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --green: #7cff67;
+      --pink: #f0a3cc;
+      --yellow: #ffbb29;
+      --bg: #080808;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --text: #f0f0f0;
+      --muted: #555;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    h1, h2, h3, h4, .logo { font-family: 'Syne', sans-serif; }
+    #aurora-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.2; }
+    body::after { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"); opacity: 0.35; pointer-events: none; z-index: 1; }
+    .content { position: relative; z-index: 2; }
+    nav { position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); background: rgba(8,8,8,0.8); backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; background: linear-gradient(135deg, var(--green), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; }
+    .nav-links { display: flex; align-items: center; gap: 4px; }
+    .nav-link { font-family: 'DM Sans', sans-serif; font-size: 0.875rem; font-weight: 500; color: var(--muted); text-decoration: none; padding: 7px 14px; border-radius: 9px; transition: color 0.2s, background 0.2s; }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .nav-link.active { color: var(--green); background: rgba(124,255,103,0.07); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-user { font-size: 0.8rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; }
+    .btn-logout { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; padding: 7px 12px; border-radius: 8px; transition: color 0.2s, background 0.2s; }
+    .btn-logout:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+    .page-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .page-sub { font-size: 0.875rem; color: var(--muted); }
+    .period-switcher { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+    .period-btn { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; color: var(--muted); background: none; border: none; cursor: pointer; padding: 6px 14px; border-radius: 7px; transition: all 0.15s; }
+    .period-btn:hover { color: var(--text); }
+    .period-btn.active { background: rgba(124,255,103,0.1); color: var(--green); }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; position: relative; overflow: hidden; transition: border-color 0.2s; }
+    .stat-card:hover { border-color: #2a2a2a; }
+    .stat-card::before { content: ''; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px; border-radius: 50%; pointer-events: none; }
+    .stat-card.balance { border-color: rgba(124,255,103,0.2); background: rgba(124,255,103,0.04); }
+    .stat-card.balance::before { background: radial-gradient(circle, rgba(124,255,103,0.15), transparent 70%); }
+    .stat-card.income::before { background: radial-gradient(circle, rgba(124,255,103,0.08), transparent 70%); }
+    .stat-card.expense::before { background: radial-gradient(circle, rgba(240,163,204,0.1), transparent 70%); }
+    .stat-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; margin-bottom: 8px; }
+    .stat-card.balance .stat-value { color: var(--green); text-shadow: 0 0 20px rgba(124,255,103,0.3); }
+    .stat-card.income .stat-value { color: var(--green); }
+    .stat-card.expense .stat-value { color: var(--pink); }
+    .stat-compare { font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+    .stat-compare.up { color: var(--green); }
+    .stat-compare.down { color: var(--pink); }
+    .stat-compare.neutral { color: var(--muted); }
+    .stat-icon { position: absolute; bottom: 18px; right: 20px; font-size: 1.4rem; opacity: 0.4; }
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 768px) { .content-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .card-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
+    .card-link { font-size: 0.75rem; color: var(--green); text-decoration: none; opacity: 0.8; transition: opacity 0.2s; }
+    .card-link:hover { opacity: 1; }
+    .card-body { padding: 20px; }
+    .chart-wrap { position: relative; max-width: 260px; margin: 0 auto; }
+    .tx-table { width: 100%; border-collapse: collapse; }
+    .tx-table th { text-align: left; padding: 10px 16px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+    .tx-table th:last-child { text-align: right; }
+    .tx-table td { padding: 11px 16px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+    .tx-table tr:last-child td { border-bottom: none; }
+    .tx-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .tx-name { color: var(--text); font-weight: 500; }
+    .tx-type { color: var(--muted); font-size: 0.75rem; }
+    .tx-amount { text-align: right; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+    .tx-amount.pos { color: var(--green); }
+    .tx-amount.neg { color: var(--pink); }
+    .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 0.875rem; }
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+    .toast { font-size: 0.85rem; padding: 12px 18px; border-radius: 12px; backdrop-filter: blur(12px); animation: toastIn 0.3s ease; }
+    .toast.success { background: rgba(124,255,103,0.1); border: 1px solid rgba(124,255,103,0.25); color: var(--green); }
+    .toast.error { background: rgba(240,163,204,0.1); border: 1px solid rgba(240,163,204,0.25); color: var(--pink); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <canvas id="aurora-canvas"></canvas>
+  <div id="toast-container"></div>
+  <div class="content">
+    <nav>
+      <div class="nav-inner">
+        <a href="home.html" class="logo">Finely</a>
+        <div class="nav-links">
+          <a href="dashboard.html" class="nav-link active">Dashboard</a>
+          <a href="transactions.html" class="nav-link">Transactions</a>
+          <a href="categories.html" class="nav-link">Categories</a>
+        </div>
+        <div class="nav-right">
+          <span id="user-login" class="nav-user"></span>
+          <button id="btn-logout" class="btn-logout">Выход</button>
+        </div>
+      </div>
+    </nav>
+    <main>
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Обзор ваших финансов</p>
+        </div>
+        <div class="period-switcher">
+          <button class="period-btn active" data-period="month">Месяц</button>
+          <button class="period-btn" data-period="week">Неделя</button>
+          <button class="period-btn" data-period="day">День</button>
+          <button class="period-btn" data-period="year">Год</button>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card balance">
+          <div class="stat-label">Баланс</div>
+          <div id="stat-balance" class="stat-value">—</div>
+          <div id="stat-balance-compare" class="stat-compare neutral"></div>
+          <div class="stat-icon">💰</div>
+        </div>
+        <div class="stat-card income">
+          <div class="stat-label">Доходы</div>
+          <div id="stat-income" class="stat-value">—</div>
+          <div id="stat-income-compare" class="stat-compare neutral"></div>
+          <div class="stat-icon">📈</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Расходы</div>
+          <div id="stat-expense" class="stat-value">—</div>
+          <div id="stat-expense-compare" class="stat-compare neutral"></div>
+          <div class="stat-icon">📉</div>
+        </div>
+      </div>
+      <div id="tip-block" style="display:none;margin-bottom:20px;">
+        <div style="background:rgba(255,187,41,0.04);border:1px solid rgba(255,187,41,0.15);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:1rem;flex-shrink:0;">💡</span>
+          <p id="tip-text" style="font-size:0.82rem;color:#888;line-height:1.55;margin:0;"></p>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">По категориям</span></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="chart-categories"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Последние транзакции</span>
+            <a href="transactions.html" class="card-link">Все →</a>
+          </div>
+          <table class="tx-table">
+            <thead><tr><th>Название</th><th>Тип</th><th>Сумма</th></tr></thead>
+            <tbody id="transactions-tbody"><tr><td colspan="3" class="empty-state">Загрузка…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('aurora-canvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    const blobs = [];
+    const colors = [{ r:124,g:255,b:103 },{ r:240,g:163,b:204 },{ r:255,g:187,b:41 },{ r:124,g:255,b:103 }];
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    function initBlobs() {
+      blobs.length = 0;
+      for (let i = 0; i < 4; i++) {
+        const c = colors[i];
+        blobs.push({ x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3, r:280+Math.random()*180, color:c, phase:Math.random()*Math.PI*2, speed:0.003+Math.random()*0.004 });
+      }
+    }
+    function drawAurora() {
+      ctx.clearRect(0,0,W,H);
+      blobs.forEach(b => {
+        b.phase += b.speed;
+        b.x += b.vx + Math.sin(b.phase)*0.4;
+        b.y += b.vy + Math.cos(b.phase*0.7)*0.3;
+        if (b.x < -b.r) b.x = W+b.r; if (b.x > W+b.r) b.x = -b.r;
+        if (b.y < -b.r) b.y = H+b.r; if (b.y > H+b.r) b.y = -b.r;
+        const grad = ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+        grad.addColorStop(0,`rgba(${b.color.r},${b.color.g},${b.color.b},0.15)`);
+        grad.addColorStop(0.5,`rgba(${b.color.r},${b.color.g},${b.color.b},0.05)`);
+        grad.addColorStop(1,`rgba(${b.color.r},${b.color.g},${b.color.b},0)`);
+        ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle=grad; ctx.fill();
+      });
+      requestAnimationFrame(drawAurora);
+    }
+    resize(); initBlobs(); drawAurora();
+    window.addEventListener('resize', resize);
+
+    const API_BASE = 'http://127.0.0.1:8000';
+    let currentPeriod = 'month';
+    let chartInstance = null;
+
+    function getTokens() { return { access: localStorage.getItem('access_token'), refresh: localStorage.getItem('refresh_token') }; }
+    function redirectAuth() { location.replace('auth.html'); }
+
+    async function refreshTokens() {
+      const { refresh } = getTokens();
+      if (!refresh) return null;
+      const r = await fetch(API_BASE+'/api/v1/refresh', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({refresh_token:refresh}) });
+      if (!r.ok) return null;
+      const data = await r.json();
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      return data.access_token;
+    }
+
+    async function fetchWithAuth(url, options={}) {
+      let token = getTokens().access;
+      if (!token) { redirectAuth(); return; }
+      options.headers = {...options.headers, Authorization:`Bearer ${token}`};
+      let r = await fetch(API_BASE+url, options);
+      if (r.status === 401) {
+        token = await refreshTokens();
+        if (!token) { redirectAuth(); return; }
+        options.headers.Authorization = `Bearer ${token}`;
+        r = await fetch(API_BASE+url, options);
+      }
+      if (r.status === 401) { redirectAuth(); return; }
+      return r;
+    }
+
+    function formatMoney(n) { return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:2}).format(n)+' ₽'; }
+    function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+    function renderCompare(elId, percent) {
+      const el = document.getElementById(elId);
+      if (percent === null || percent === 0) {
+        el.className = 'stat-compare neutral';
+        el.textContent = 'нет данных за прошлый месяц';
+        return;
+      }
+      const sign = percent > 0 ? '+' : '';
+      el.className = `stat-compare ${percent > 0 ? 'up' : 'down'}`;
+      el.textContent = `${percent > 0 ? '▲' : '▼'} ${sign}${percent.toFixed(1)}% vs прошлый месяц`;
+    }
+
+    function clearCompare() {
+      ['stat-balance-compare','stat-income-compare','stat-expense-compare'].forEach(id => {
+        const el = document.getElementById(id);
+        el.className = 'stat-compare neutral';
+        el.textContent = '';
+      });
+    }
+
+    // Палитры в тональности приложения
+    const incomeColors = [
+      '#7cff67','#a8ff8a','#52e63a','#b8ffaa','#39d922',
+      '#d4ffcc','#5cff47','#90ff7a','#64fa4e','#c2ff99',
+    ];
+    const expenseColors = [
+      '#f0a3cc','#ff7eb3','#e85fa0','#ffb8d8','#d45c8a',
+      '#ffc2e0','#ff94c2','#e870ad','#fab0d5','#ff6ba8',
+    ];
+
+    function renderChart(categories, transactions) {
+      const c = document.getElementById('chart-categories');
+      if (chartInstance) chartInstance.destroy();
+      const catStats = {};
+      categories.forEach(cat => { catStats[cat.id] = {income:0,expense:0}; });
+      transactions.forEach(t => {
+        if (catStats[t.category_id]) {
+          if (t.transaction_type==='income') catStats[t.category_id].income += t.amount;
+          else catStats[t.category_id].expense += t.amount;
+        }
+      });
+      const incomeCats = categories.filter(c=>c.category_type==='income').map(c=>({name:c.name,amount:catStats[c.id]?.income||0})).filter(c=>c.amount>0);
+      const expenseCats = categories.filter(c=>c.category_type==='expense').map(c=>({name:c.name,amount:catStats[c.id]?.expense||0})).filter(c=>c.amount>0);
+      if (incomeCats.length===0 && expenseCats.length===0) {
+        document.querySelector('.chart-wrap').innerHTML = '<div class="empty-state">Нет данных для графика</div>';
+        return;
+      }
+      const bgColors = [
+        ...incomeCats.map((_,i) => incomeColors[i % incomeColors.length] + 'cc'),
+        ...expenseCats.map((_,i) => expenseColors[i % expenseColors.length] + 'cc'),
+      ];
+      const borderColors = [
+        ...incomeCats.map((_,i) => incomeColors[i % incomeColors.length]),
+        ...expenseCats.map((_,i) => expenseColors[i % expenseColors.length]),
+      ];
+      chartInstance = new Chart(c, {
+        type:'doughnut',
+        data:{
+          labels:[...incomeCats.map(c=>c.name),...expenseCats.map(c=>c.name)],
+          datasets:[{
+            data:[...incomeCats.map(c=>c.amount),...expenseCats.map(c=>c.amount)],
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth:1, hoverOffset:6,
+          }]
+        },
+        options:{
+          responsive:true, cutout:'68%',
+          plugins:{ legend:{ position:'bottom', labels:{color:'#888',font:{family:'DM Sans',size:12},padding:16,boxWidth:10,borderRadius:3} } }
+        }
+      });
+    }
+
+    async function loadDashboard(period) {
+      const [statRes, txRes, catRes] = await Promise.all([
+        fetchWithAuth(`/api/v1/statistics/?period=${period}`),
+        fetchWithAuth('/api/v1/transactions/?limit=100'),
+        fetchWithAuth('/api/v1/category/?limit=100'),
+      ]);
+      if (!statRes || !txRes || !catRes) return;
+
+      if (statRes.ok) {
+        const stat = await statRes.json();
+        const summary = stat.summary_stat;
+        const compare = stat.month_compare;
+
+        // совет
+        if (stat.tip) {
+          const key = 'dashboard_tip';
+          let tip = sessionStorage.getItem(key);
+          if (!tip) { tip = stat.tip; sessionStorage.setItem(key, tip); }
+          document.getElementById('tip-text').textContent = tip;
+          document.getElementById('tip-block').style.display = 'block';
+        }
+
+        document.getElementById('stat-balance').textContent = formatMoney(summary.balance);
+        document.getElementById('stat-income').textContent = formatMoney(summary.income);
+        document.getElementById('stat-expense').textContent = formatMoney(summary.expense);
+
+        if (period === 'month') {
+          renderCompare('stat-income-compare', compare.income_percent_compare);
+          renderCompare('stat-expense-compare', compare.expense_percent_compare);
+          const currentBalance = summary.income - summary.expense;
+          const lastBalance = compare.last_month_total_income - compare.last_month_total_expense;
+          const balancePercent = lastBalance !== 0 ? ((currentBalance - lastBalance) / Math.abs(lastBalance)) * 100 : null;
+          renderCompare('stat-balance-compare', balancePercent);
+        } else {
+          clearCompare();
+        }
+      }
+
+      const transactions = txRes.ok ? await txRes.json() : [];
+      const categories = catRes.ok ? await catRes.json() : [];
+
+      renderChart(categories, transactions);
+
+      const tbody = document.getElementById('transactions-tbody');
+      const last = transactions.slice(0, 6);
+      if (last.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">Нет транзакций</td></tr>';
+      } else {
+        tbody.innerHTML = last.map(t => `
+          <tr>
+            <td class="tx-name">${escapeHtml(t.name)}</td>
+            <td class="tx-type">${t.transaction_type==='income'?'Доход':'Расход'}</td>
+            <td class="tx-amount ${t.transaction_type==='income'?'pos':'neg'}">${t.transaction_type==='income'?'+':'−'}${formatMoney(t.amount)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    if (!getTokens().access) redirectAuth();
+
+    document.querySelectorAll('.period-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = btn.dataset.period;
+        loadDashboard(currentPeriod);
+      };
+    });
+
+    (async () => {
+      const profileRes = await fetchWithAuth('/api/v1/profile');
+      if (profileRes?.ok) {
+        const user = await profileRes.json();
+        document.getElementById('user-login').textContent = user.login;
+      }
+      await loadDashboard(currentPeriod);
+    })();
+
+    document.getElementById('btn-logout').onclick = async () => {
+      const refresh = getTokens().refresh;
+      if (refresh) {
+        try { await fetch(API_BASE+'/api/v1/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})}); } catch(_) {}
+      }
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('dashboard_tip');
+      location.href = 'auth.html';
+    };
+  </script>
+</body>
+</html>

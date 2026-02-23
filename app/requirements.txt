@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+aiosqlite
+sqlalchemy
+python-jose[cryptography]
+passlib
+asyncpg
+python-dateutil

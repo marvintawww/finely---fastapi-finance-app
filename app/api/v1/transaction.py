@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import date
-from jose import JWTError, ExpiredSignatureError
+from jose import JWTError
 
 from services.transaction import TransactionService
 from schemas.transaction import TransactionCreate, TransactionResponse
@@ -46,11 +46,6 @@ async def new_transaction(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Несовпадение типа транзакции/категории'
         )
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
-        )
 
 
 @router.delete(
@@ -92,11 +87,6 @@ async def delete_transaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Транзакция не найдена'
         )
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
-        )
     
 
 @router.get(
@@ -130,26 +120,20 @@ async def get_all_transactions(
 
     Returns:
         list: Список транзакций
-    """
-    try:    
-        transactions = await transaction_service.get_transactions_list(
-            user_id=user_id,
-            search=search,
-            transaction_type=transaction_type,
-            category_id=category_id,
-            date_from=date_from,
-            date_to=date_to,
-            order=order,
-            skip=skip,
-            limit=limit
-        )
-        
-        return transactions
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
-        )
+    """    
+    transactions = await transaction_service.get_transactions_list(
+        user_id=user_id,
+        search=search,
+        transaction_type=transaction_type,
+        category_id=category_id,
+        date_from=date_from,
+        date_to=date_to,
+        order=order,
+        skip=skip,
+        limit=limit
+    )
+    
+    return transactions
 
 
 @router.get(
@@ -187,11 +171,6 @@ async def get_one_transaction(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Транзакция не найдена'
-        )
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
         )
     
     

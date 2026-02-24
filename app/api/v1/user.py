@@ -128,10 +128,10 @@ async def logout(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='Ошибка выхода'
         )
-    except ExpiredSignatureError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
+            detail='TOKEN ERROR'
         )
 
 
@@ -161,9 +161,9 @@ async def refresh(
     try:
         tokens = await jwt_service.refresh_tokens(data.refresh_token)
         return tokens
-    except TokenCreationError:
+    except TokenCreationError: #? Очень спорный момент
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED, 
             detail='Ошибка при создании новой пары токенов'
         )
     except TokenBlaklistError:
@@ -171,10 +171,10 @@ async def refresh(
             status_code=status.HTTP_403_FORBIDDEN,
             detail='Токен недействителен'
         )
-    except ExpiredSignatureError:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
+            detail='TOKEN ERROR'
         )
         
     
@@ -208,9 +208,4 @@ async def profile(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail='Пользователь не найден'
-        )
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Подпись истекла'
         )

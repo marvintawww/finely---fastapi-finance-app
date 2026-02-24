@@ -1,8 +1,7 @@
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from jose import jwt, JWTError, ExpiredSignatureError
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
 
 from config import SECRET
 from database.db import db
@@ -44,11 +43,16 @@ async def get_current_user(
         if token_type != 'access':
             raise TokenTypeError('Неверный тип токена')
         
-        
         user_id = int(payload.get('sub'))
         return user_id
-    except (TypeError, ValueError, JWTError):
-        raise TokenDecodeError('Ошибка декодирования токена')
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='JWT Ошибка'
+        )
     except ExpiredSignatureError:
-        raise
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Срок действия подписи истек'
+        )
     
